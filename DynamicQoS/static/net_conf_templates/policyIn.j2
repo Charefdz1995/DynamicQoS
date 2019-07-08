@@ -1,0 +1,9 @@
+{% for class in a.classes %}
+class-map {{class.name}}
+{{class.match}}
+{% endfor %}
+policy-map {{a.name}}
+{% for class in a.classes %}
+class {{class.name}}
+set dscp {{class.dscp_value}}
+{% endfor %}

@@ -1,0 +1,29 @@
+{% for interface in interfaces %}
+{% for policy in policies %}
+{% if policy.interface == interface %}
+{% for class in policy.regroupment_classes %}
+class-map {{class.name}}
+{% for app in class.classes %}
+match ip dscp {{app.dscp_value}}
+{% endfor %}
+
+{% endfor %}
+policy-map {{policy.name}}
+{% for class in policy.regroupment_classes %}
+class {{class.name}}
+bandwidth percent
+police cir percent
+conform-action transmit
+exceed-action set-dscp-transmit
+violate-action drop
+random-detect dscp-based
+{% for dscp in dscp_list %}
+{% if dscp.regroupment_class == class %}
+random-detect dscp
+{% endif %}
+{% endfor %}
+random-detect ecn
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
