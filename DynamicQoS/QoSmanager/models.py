@@ -28,6 +28,9 @@ class PolicyIn(models.Model):
     name = models.CharField(max_length=45)
     description = models.CharField(max_length=45)
 
+    def __str__(self):
+        return self.name
+
     @property
     def render_policy(self):
         env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
@@ -55,6 +58,9 @@ class PolicyOut(models.Model):
     name = models.CharField(max_length=45)
     description = models.CharField(max_length=45)
 
+    def __str__(self):
+        return self.name
+
     @property
     def render_policy(self):
         env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
@@ -79,6 +85,9 @@ class RegroupementClass(models.Model):
     policing = models.ForeignKey(Policing, on_delete=models.CASCADE, null=True)
     priority = models.CharField(max_length=45)
     bandwidth = models.CharField(max_length=45)
+
+    def __str__(self):
+        return self.name
 
 
 class Dscp(models.Model):
@@ -122,3 +131,42 @@ class Application(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Topology(models.Model):
+    topology_name = models.CharField(max_length=45)
+    topology_desc = models.CharField(max_length=45)
+
+    def __str__(self):
+        return self.topology_name
+
+
+class Access(models.Model):
+    management_interface = models.CharField(max_length=45)
+    management_address = models.CharField(max_length=45)
+    username = models.CharField(max_length=45)
+    password = models.CharField(max_length=45)
+    enable_secret = models.CharField(max_length=45)
+
+
+class Device(models.Model):
+    hostname = models.CharField(max_length=45)
+    management = models.ForeignKey(Access, on_delete=models.CASCADE, null=True)
+    topology_ref = models.ForeignKey(Topology, on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return self.hostname
+
+
+class Interface(models.Model):
+    interface_name = models.CharField(max_length=45)
+    interface_address = models.CharField(max_length=45)
+    interface_prefixlen = models.IntegerField()
+    interface_speed = models.IntegerField()
+    ingress = models.BooleanField(default=True)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True)
+
+
+class Link(models.Model):
+    link_speed = models.IntegerField()
+    topology_ref = models.ForeignKey(Topology, on_delete=models.CASCADE, null=True)
