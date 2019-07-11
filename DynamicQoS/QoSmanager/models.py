@@ -24,9 +24,15 @@ class BusinessApp(models.Model):
         return self.name
 
 
+class Policy(models.Model):
+    name = models.CharField(max_length=45)
+    description = models.CharField(max_length=45)
+
+
 class PolicyIn(models.Model):
     name = models.CharField(max_length=45)
     description = models.CharField(max_length=45)
+    policy_ref = models.ForeignKey(Policy, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
@@ -57,6 +63,7 @@ class PolicyIn(models.Model):
 class PolicyOut(models.Model):
     name = models.CharField(max_length=45)
     description = models.CharField(max_length=45)
+    policy_ref = models.ForeignKey(Policy, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
@@ -160,13 +167,6 @@ class Device(models.Model):
 
 class Interface(models.Model):
     interface_name = models.CharField(max_length=45)
-    interface_address = models.CharField(max_length=45)
-    interface_prefixlen = models.IntegerField()
-    interface_speed = models.IntegerField()
     ingress = models.BooleanField(default=True)
     device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True)
 
-
-class Link(models.Model):
-    link_speed = models.IntegerField()
-    topology_ref = models.ForeignKey(Topology, on_delete=models.CASCADE, null=True)

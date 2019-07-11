@@ -22,7 +22,7 @@ class AddApplicationForm(forms.ModelForm):
             self.fields['business_app'].queryset = self.instance.BusinessType.BusinessApp_set.order_by('name')
 
 
-class AddInputPolicyForm(forms.ModelForm):
+class AddPolicyForm(forms.ModelForm):
     class Meta:
-        model = PolicyIn
+        model = Policy
         fields = '__all__'
