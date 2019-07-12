@@ -4,9 +4,11 @@ from netaddr import *
 from jinja2 import Environment, FileSystemLoader
 from napalm import get_network_driver 
 import random
+#import numpy as np 
 
 class interface(DynamicDocument):
         interface_name = StringField(required=True)
+        interface_index = IntField(required = True)
         interface_address = StringField(required=True)
         interface_prefixlen = IntField(required=True)
         interface_speed = IntField(required = True)
@@ -19,8 +21,6 @@ class interface(DynamicDocument):
                 output = template.render(interface_name = self.interface_name)
                 return output
 
-
-
 class access(DynamicEmbeddedDocument):
         management_interface = StringField(required = True)
         management_address = StringField(required=True)
@@ -32,6 +32,7 @@ class device(DynamicDocument):
         hostname = StringField(required = False)
         management = EmbeddedDocumentField(access)
         interfaces = ListField(ReferenceField(interface))
+        is_responder = BooleanField(default = False)
         
         def connect(self):
                 driver = get_network_driver("ios")
@@ -47,10 +48,12 @@ class device(DynamicDocument):
         def get_fqdn(self):
                 self.hostname = self.connect().get_facts()['fqdn']
 
-
-        
-
-
+        def get_interface_by_index(self,index):
+            for interface in self.interfaces:
+                if (interface.index == index):
+                    return interface 
+                else:
+                    return None 
 
         def configure_netflow(self,destination):
                 global_output = ""
@@ -68,21 +71,21 @@ class device(DynamicDocument):
                 print("device is configured")
                 return True
 
-
-
-
-        def configure_ip_sla(self,operation,record):
-                env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        def configure_ip_sla(self,operation,record,dst_device):
+                env = Environment(loader=FileSystemLoader("."))
                 template = env.get_template("ip_sla.j2")
-                output = template.render(operation = operation,record = record)
-                config = output.splitlines()
-                return self.connect().cli(config)
+                output = template.render(operation = operation,dst_device = dst_device,record = record)
+                sla_config = output
+                self.connect().load_merge_candidate(config = sla_config)
+                self.connect().commit_config()
+                return True
 
 
         def configure_ip_sla_responder(self):
-                return self.connect().cli(['ip sla responder'])
-
-
+                self.connect().load_merge_candidate(config ='ip sla responder')
+                self.connect().commit_config()
+                return True
+                
         def pull_ip_sla_stats(self,operation):
                 jitter_cmd = "show ip sla statistics {} | include Destination to Source Jitter".format(str(operation))
                 delay_cmd = "show ip sla statistics {} | include Destination to Source Latency".format(str(operation))
@@ -90,27 +93,33 @@ class device(DynamicDocument):
 
                 result = self.connect().cli(config)
 
-                jitter = int(re.findall("\+d",result[jitter_cmd])[1])
-                delay = int(re.findall("\+d",result[delay_cmd])[1])
+                jitter = int(re.findall("\d+",result[jitter_cmd])[1])
+                delay = int(re.findall("\d+",result[delay_cmd])[1])
 
                 return jitter, delay
 
         def get_cdp_neighbors(self):
                 connection = self.connect()
                 neighbors = connection.cli(["show cdp neighbors detail | include Device ID","show cdp neighbors detail | include Interface"])
-
                 neighbor_devices = (neighbors["show cdp neighbors detail | include Device ID"]).splitlines()
                 neighbor_interfaces = (neighbors["show cdp neighbors detail | include Interface"]).splitlines()
-
                 cdp_devices = [x[x.find(":")+2:] for x in neighbor_devices]
                 cdp_interfaces = [{"from":x[x.find(":")+2:x.find(",")],"to":x[x.find("):")+3:]} for x in neighbor_interfaces]
                 res = []
                 for i in range(len(cdp_devices)):
                         res.append({"to_device":cdp_devices[i],"interfaces":cdp_interfaces[i]})
-
-
-
                 return {self.hostname : res }
+
+        def get_interfaces_index(self):
+                interfaces_f={}
+                connection = self.connect()
+                interfaces_sh = connection.cli(["show snmp mib ifmib ifindex"])
+                interfaces_sh_sp = (interfaces_sh["show snmp mib ifmib ifindex"]).splitlines()
+
+                for intf in interfaces_sh_sp:
+                        parts = intf.split(': ')
+                        interfaces_f.update({parts[0]: int(parts[1].strip('Ifindex = '))})
+                return interfaces_f
 
 class link(DynamicDocument):
         from_device = ReferenceField(device)
@@ -125,7 +134,6 @@ class link(DynamicDocument):
                 elif (self.to_interface.interface_speed >= self.from_interface.interface_speed):
                         self.link_speed = self.from_interface.interface_speed
 
-
         def compare(self,clink):
                 if(self.from_device == clink.from_device and self.from_interface == clink.from_interface and self.to_device == clink.to_device and self.to_interface == clink.to_interface ):
                         return True
@@ -134,9 +142,6 @@ class link(DynamicDocument):
                 else:
                         return False 
 
-
-
-
 class topology(DynamicDocument):
         topology_name = StringField(required=True)
         topology_desc = StringField(required=False)
@@ -144,9 +149,12 @@ class topology(DynamicDocument):
         links = ListField(ReferenceField(link)) 
 
 
+
+
+
         def get_ip_sla_devices(self,record):
-                src_ip = IPAddress(record.IPV4.SRC.ADDR) 
-                dst_ip = IPAddress(record.IPV4.DST.ADDR)
+                src_ip = IPAddress(record.IPV4_SRC_ADDR) 
+                dst_ip = IPAddress(record.IPV4_DST_ADDR)
                 src_device = None
                 dst_device = None  
                 for device in self.devices:
@@ -165,13 +173,14 @@ class topology(DynamicDocument):
                 for device in self.devices:
                         connection = device.connect()
                         ports = connection.get_interfaces_ip()
+                        interfaces_index = device.get_interfaces_index()
                         speeds = connection.get_interfaces()
                         interfaces_list = []
                         for port in ports:
                                 port_speed = speeds[port]["speed"]
                                 for ip in ports[port]["ipv4"]:
                                         cidr = ports[port]["ipv4"][ip]["prefix_length"]
-                                        interface_ins = interface(interface_name = port , interface_address = ip , interface_prefixlen = int(cidr),interface_speed = port_speed)
+                                        interface_ins = interface(interface_name = port , interface_index = interfaces_index[port] ,interface_address = ip , interface_prefixlen = int(cidr),interface_speed = port_speed)
                                         interface_ins.save()
                                         interfaces_list.append(interface_ins)
                         connection.close()
@@ -211,13 +220,15 @@ class topology(DynamicDocument):
                                 link_ins = link(from_device = devicef , from_interface = interfacef , to_device = devicet,to_interface = interfacet)
                                 exist = False
                                 for lk in self.links:
-                                    if (lk.compare(link_ins)):
-                                        exist = True 
-                                        break 
+                                        if (lk.compare(link_ins)):
+                                                exist = True 
+                                                break 
                                 if not(exist):
                                         link_ins.calculate_speed()
                                         link_ins.save()
                                         self.links.append(link_ins)
+                        self.update(set__links=self.links)
+
 
         def configure_ntp(self):
                 ntp_master = random.choice(self.devices)
@@ -229,41 +240,44 @@ class topology(DynamicDocument):
         def configure_scp(self):
                 for device in self.devices:
                         device.connect().cli(["ip scp server enable"])
+        def configure_snmp(self):
+                for device in self.devices:
+                        device.connect().cli(["snmp-server community public RO","snmp-server community private RW"])
 
+class ip_sla(Document):
+        operation = SequenceField()
+        type_of_service = IntField(required = True)
+        sender_device_ref = ReferenceField(device)
+        responder_device_ref = ReferenceField(device)
 
 class flow(DynamicDocument):
+        flow_id = StringField(primary_key = True)
         ipv4_src_addr = StringField(required = True)
         ipv4_dst_addr = StringField(required = True)
         ipv4_protocol = IntField(required = True)
         transport_src_port = IntField(required = True)
         transport_dst_port = IntField(required = True)
         type_of_service = IntField(required = True)
-        application_name = StringField(required = True)
-        
-        
+        application_ID = IntField(required = True)
+        ip_sla_ref = ReferenceField(ip_sla)
 
 class netflow_fields(DynamicDocument):
 
         #Real time information about flow in the monitor. 
         counter_bytes = IntField(required = True)
         counter_pkts = IntField(required = True)
-        first_switched = FloatField(required = True)
-        last_switched  = FloatField(required = True)
+        first_switched = ComplexDateTimeField(required = True)
+        last_switched  = ComplexDateTimeField(required = True)
         #QoS parameters
         bandwidth = FloatField(required = False)
         #=======================================
         # Device related Information
-        collection_time = StringField(required = True)
-        input_int = IntField(required = True)
-        output_int = IntField(required = True)
+        collection_time = ComplexDateTimeField(required = True)
         device = ReferenceField(device)
+        input_int = ReferenceField(interface)
+        output_int = ReferenceField(interface)
         flow = ReferenceField(flow)
         #=======================================
-
-class ip_sla(Document):
-        operation = SequenceField()
-        flow_ref = ReferenceField(flow)
-        device_ref = ReferenceField(device)
 
 class ip_sla_info(Document):
         avg_jitter = IntField(required = True)
