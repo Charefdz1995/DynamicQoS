@@ -33,7 +33,7 @@ def add_application(request, police_id):
                 app_priority=request.POST['app_priority'],
                 business_type=BusinessType.objects.get(id=type_id),
                 business_app=BusinessApp.objects.get(id=app_id)).save()
-    return HttpResponse("success")
+    return redirect('applications', police_id=police_id)
 
 
 def applications(request, police_id):
@@ -49,7 +49,21 @@ def add_policy(request):
     a = Policy(name=request.POST['name'], description=request.POST['description'])
     a.save()
     police_id = a.id
-    PolicyIn.objects.create(name=a.name , policy_ref=a)
+    PolicyIn.objects.create(policy_ref=a)
+    interfaces = Interface.objects.filter(ingress=False)
+    for interface in interfaces:
+        po = PolicyOut.objects.create(policy_ref=a)
+        interface.policy_out_ref = po
+        interface.save()
+        RegroupementClass.objects.create(name="priority", priority="4",
+                                         policy_out=po)
+        RegroupementClass.objects.create(name="high", priority="3",
+                                         policy_out=po)
+        RegroupementClass.objects.create(name="med", priority="2",
+                                         policy_out=po)
+        RegroupementClass.objects.create(name="low", priority="1",
+                                         policy_out=po)
+
     return redirect('applications', police_id=police_id)
 
 
