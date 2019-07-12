@@ -30,12 +30,18 @@ class Policy(models.Model):
 
 
 class PolicyIn(models.Model):
-    name = models.CharField(max_length=45)
-    description = models.CharField(max_length=45)
     policy_ref = models.ForeignKey(Policy, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
+
+    @property
+    def name(self):
+        return self.policy_ref.name
+
+    @property
+    def description(self):
+        return self.policy_ref.description
 
     @property
     def render_policy(self):
@@ -61,12 +67,19 @@ class PolicyIn(models.Model):
 
 
 class PolicyOut(models.Model):
-    name = models.CharField(max_length=45)
-    description = models.CharField(max_length=45)
     policy_ref = models.ForeignKey(Policy, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
+
+    @property
+    def name(self):
+        interface = Interface.objects.filter(policy_out_ref=self)
+        return "OUT_{}_{}".format(self.policy_ref.name, interface.interface_name)
+
+    @property
+    def description(self):
+        return self.policy_ref.description
 
     @property
     def render_policy(self):
@@ -125,19 +138,28 @@ class Application(models.Model):
         (Priority, "4")
     )
 
-    name = models.CharField(max_length=45)
-    match = models.CharField(max_length=45)
     business_type = models.ForeignKey(BusinessType, on_delete=models.CASCADE, null=True)
     business_app = models.ForeignKey(BusinessApp, on_delete=models.CASCADE, null=True)
     policy_in = models.ForeignKey(PolicyIn, on_delete=models.CASCADE, null=True)
     app_priority = models.CharField(max_length=20, choices=PRIORITY)
     drop_prob = models.CharField(max_length=20, choices=DROP)
-    dscp_value = models.CharField(max_length=45)
     dscp = models.ForeignKey(Dscp, on_delete=models.CASCADE, null=True)
     regroupement_class = models.ForeignKey(RegroupementClass, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
+
+    @property
+    def name(self):
+        return "{}".format(self.business_app.name)
+
+    @property
+    def match(self):
+        return "{}".format(self.business_app.match)
+
+    @property
+    def dscp_value(self):
+        return "AF{}{}".format(self.app_priority, self.drop_prob)
 
 
 class Topology(models.Model):
@@ -164,9 +186,28 @@ class Device(models.Model):
     def __str__(self):
         return self.hostname
 
+    def ingress(self):
+        interfaces = Interface.objects.filter(ingress=True, device=self)
+        if interfaces is not None:
+            return True
+        else:
+            return False
+
+    def egress(self):
+        interfaces = Interface.objects.filter(egress=True, device=self)
+        if interfaces is not None:
+            return True
+        else:
+            return False
+
 
 class Interface(models.Model):
     interface_name = models.CharField(max_length=45)
     ingress = models.BooleanField(default=True)
     device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True)
+    egress = models.BooleanField(default=False)
 
+    policy_out_ref = models.ForeignKey(PolicyOut, on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return self.interface_name
