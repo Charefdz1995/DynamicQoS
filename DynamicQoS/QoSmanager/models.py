@@ -1,11 +1,8 @@
+import napalm
+from DynamicQoS.settings import NET_CONF_TEMPLATES
 from django.db import models
-
 # Create your models here.
 from jinja2 import Environment, FileSystemLoader
-
-from DynamicQoS.settings import NET_CONF_TEMPLATES
-
-import napalm
 
 
 class BusinessType(models.Model):
@@ -99,11 +96,16 @@ class Policing(models.Model):
     dscp_transmit = models.CharField(max_length=45)
 
 
-class RegroupementClass(models.Model):
+class Group(models.Model):
     name = models.CharField(max_length=45)
-    policy_out = models.ForeignKey(PolicyOut, on_delete=models.CASCADE, null=True)
-    policing = models.ForeignKey(Policing, on_delete=models.CASCADE, null=True)
+    policy = models.ForeignKey(Policy, on_delete=models.CASCADE, null=True)
     priority = models.CharField(max_length=45)
+
+
+class RegroupementClass(models.Model):
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
+    policing = models.ForeignKey(Policing, on_delete=models.CASCADE, null=True)
+    policy_out = models.ForeignKey(PolicyOut, on_delete=models.CASCADE, null=True)
     bandwidth = models.CharField(max_length=45)
 
     def __str__(self):
@@ -144,7 +146,7 @@ class Application(models.Model):
     app_priority = models.CharField(max_length=20, choices=PRIORITY)
     drop_prob = models.CharField(max_length=20, choices=DROP)
     dscp = models.ForeignKey(Dscp, on_delete=models.CASCADE, null=True)
-    regroupement_class = models.ForeignKey(RegroupementClass, on_delete=models.CASCADE, null=True)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
@@ -204,7 +206,7 @@ class Device(models.Model):
 class Interface(models.Model):
     interface_name = models.CharField(max_length=45)
     ingress = models.BooleanField(default=True)
-    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True)
+    device_ref = models.ForeignKey(Device, on_delete=models.CASCADE, null=True)
     egress = models.BooleanField(default=False)
 
     policy_out_ref = models.ForeignKey(PolicyOut, on_delete=models.CASCADE, null=True)
