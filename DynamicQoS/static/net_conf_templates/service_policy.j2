@@ -1,0 +1,6 @@
+interface {{ a.interface_name }}
+{% if a.ingress == True %}
+service-policy input {{ policy_in.name }}
+{% else %}
+service-policy output {{ policy_out.name }}
+{% endif %}

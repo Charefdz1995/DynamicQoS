@@ -6,6 +6,14 @@ from jinja2 import Environment, FileSystemLoader
 from netaddr import *
 
 
+class Topology(models.Model):
+    topology_name = models.CharField(max_length=45)
+    topology_desc = models.CharField(max_length=45)
+
+    def __str__(self):
+        return self.topology_name
+
+
 class BusinessType(models.Model):
     name = models.CharField(max_length=45)
 
@@ -25,6 +33,7 @@ class BusinessApp(models.Model):
 class Policy(models.Model):
     name = models.CharField(max_length=45)
     description = models.CharField(max_length=45)
+    topology_ref = models.ForeignKey(Topology, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
@@ -186,13 +195,16 @@ class Application(models.Model):
             return None
 
     @property
+    def acl_name(self):
+        return "{}_acl".format(self.name)
+
+    @property
     def render_time_range(self):
         env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
         output = env.get_template("time.j2")
         config_file = output.render(a=self)
 
         return config_file
-
 
     @property
     def acl_list(self):
@@ -209,14 +221,6 @@ class Application(models.Model):
                                     a=self)
 
         return config_file
-
-
-class Topology(models.Model):
-    topology_name = models.CharField(max_length=45)
-    topology_desc = models.CharField(max_length=45)
-
-    def __str__(self):
-        return self.topology_name
 
 
 class Access(models.Model):
@@ -260,3 +264,16 @@ class Interface(models.Model):
 
     def __str__(self):
         return self.interface_name
+
+    def service_policy(self):
+        a = self.policy_out_ref.policy_ref
+
+        policy_in = PolicyIn.objects.get(policy_ref=a)
+        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        output = env.get_template("service_policy.j2")
+        config_file = output.render(policy_in=policy_in,
+                                    policy_out=self.policy_out_ref,
+                                    a=self)
+        return config_file
+
+

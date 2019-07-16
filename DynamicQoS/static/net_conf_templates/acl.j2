@@ -1,5 +1,5 @@
+ip access-list extended {{a.acl_name}}
 {% if a.time_range is not none %}
-ip access-list extended {{a.name}}
 {% if a.source is not none and a.destination is not none %}
 permit ip {{source.ip}} {{source_wild_card}} {{destination.ip}} {{destination_wild_card}} time-range {{a.time_range}}
 
