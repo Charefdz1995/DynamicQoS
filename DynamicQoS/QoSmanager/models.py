@@ -186,6 +186,15 @@ class Application(models.Model):
             return None
 
     @property
+    def render_time_range(self):
+        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        output = env.get_template("time.j2")
+        config_file = output.render(a=self)
+
+        return config_file
+
+
+    @property
     def acl_list(self):
         source = IPNetwork(self.source)
         destination = IPNetwork(self.destination)
