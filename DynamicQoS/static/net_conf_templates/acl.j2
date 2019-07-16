@@ -1,25 +1,25 @@
 {% if a.time_range is not none %}
 ip access-list extended {{a.name}}
 {% if a.source is not none and a.destination is not none %}
-permit ip {{a.source}} {{a.source_wild_card}} {{a.destination}} {{a.destination_wild_card}} time-range {{a.time_range.name}}
+permit ip {{source.ip}} {{source_wild_card}} {{destination.ip}} {{destination_wild_card}} time-range {{a.time_range}}
 
 {% elif a.source is not none %}
-permit ip {{a.source}} {{a.source_wild_card}} any time-range {{a.time_range.name}}
+permit ip {{source}} {{source_wild_card}} any time-range {{a.time_range}}
 
 {% elif a.destination is not none %}
-permit ip any {{a.destination}} {{a.destination_wild_card}} time-range {{a.time_range.name}}
+permit ip any {{destination}} {{destination_wild_card}} time-range {{a.time_range}}
 {% else %}
-permit ip any any time-range {{a.time_range.name}}
+permit ip any any time-range {{a.time_range}}
 {% endif %}
 {% else %}
 {% if a.source is not none and a.destination is not none %}
-permit ip {{a.source}} {{a.source_wild_card}} {{a.destination}} {{a.destination_wild_card}}
+permit ip {{source}} {{source_wild_card}} {{destination}} {{destination_wild_card}}
 
 {% elif a.source is not none %}
-permit ip {{a.source}} {{a.source_wild_card}} any
+permit ip {{source}} {{source_wild_card}} any
 
 {% elif a.destination is not none %}
-permit ip any {{a.destination}} {{a.destination_wild_card}}
+permit ip any {{destination}} {{destination_wild_card}}
 {% else %}
 permit ip any any
 {% endif %}

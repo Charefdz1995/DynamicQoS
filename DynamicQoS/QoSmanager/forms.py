@@ -5,7 +5,7 @@ from .models import *
 class AddApplicationForm(forms.ModelForm):
     class Meta:
         model = Application
-        fields = ('business_type', 'business_app', 'app_priority', 'drop_prob')
+        fields = ('business_type', 'business_app', 'app_priority', 'drop_prob', 'begin_time', 'end_time', 'source', 'destination')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

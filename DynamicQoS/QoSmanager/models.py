@@ -3,6 +3,7 @@ from DynamicQoS.settings import NET_CONF_TEMPLATES
 from django.db import models
 # Create your models here.
 from jinja2 import Environment, FileSystemLoader
+from netaddr import *
 
 
 class BusinessType(models.Model):
@@ -25,6 +26,9 @@ class Policy(models.Model):
     name = models.CharField(max_length=45)
     description = models.CharField(max_length=45)
 
+    def __str__(self):
+        return self.name
+
 
 class PolicyIn(models.Model):
     policy_ref = models.ForeignKey(Policy, on_delete=models.CASCADE, null=True)
@@ -46,21 +50,20 @@ class PolicyIn(models.Model):
         classes = Application.objects.filter(policy_in_id=self.id)
         named = env.get_template("policyIn.j2")
         config_file = named.render(classes=classes, a=self)
-        confige = config_file.splitlines()
-        print(confige)
-        driver = napalm.get_network_driver('ios')
-        device = driver(hostname='192.168.5.1', username='admin',
-                        password='admin')
+        config = config_file.splitlines()
+        # driver = napalm.get_network_driver('ios')
+        # device = driver(hostname='192.168.5.1', username='admin',
+        #                 password='admin')
+        #
+        # print('Opening ...')
+        # device.open()
+        # print('Loading replacement candidate ...')
+        # device.load_merge_candidate(config=config_file)
+        # print('\nDiff:')
+        # print(device.compare_config())
+        # print('Committing ...')
 
-        print('Opening ...')
-        device.open()
-        print('Loading replacement candidate ...')
-        device.load_merge_candidate(config=config_file)
-        print('\nDiff:')
-        print(device.compare_config())
-        print('Committing ...')
-
-        return device.commit_config()
+        return config_file
 
 
 class PolicyOut(models.Model):
@@ -81,11 +84,12 @@ class PolicyOut(models.Model):
     @property
     def render_policy(self):
         env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        groups = Group.objects.filter(policy=self.policy_ref)
         regroupement_classes = RegroupementClass.objects.filter(policy_out_id=self.id)
         dscp_list = Dscp.objects.all()
         classes = Application.objects.all()
         named = env.get_template("policyOut.j2")
-        config_file = named.render(classes=classes, a=self, regroupement_classes=regroupement_classes,
+        config_file = named.render(groups=groups, classes=classes, a=self, regroupement_classes=regroupement_classes,
                                    dscp_list=dscp_list)
         return config_file
 
@@ -94,6 +98,11 @@ class Policing(models.Model):
     cir = models.CharField(max_length=45)
     pir = models.CharField(max_length=45)
     dscp_transmit = models.CharField(max_length=45)
+
+
+class Shaping(models.Model):
+    peak = models.CharField(max_length=45)
+    average = models.CharField(max_length=45)
 
 
 class Group(models.Model):
@@ -105,6 +114,7 @@ class Group(models.Model):
 class RegroupementClass(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
     policing = models.ForeignKey(Policing, on_delete=models.CASCADE, null=True)
+    shaping = models.ForeignKey(Shaping, on_delete=models.CASCADE, null=True)
     policy_out = models.ForeignKey(PolicyOut, on_delete=models.CASCADE, null=True)
     bandwidth = models.CharField(max_length=45)
 
@@ -147,6 +157,10 @@ class Application(models.Model):
     drop_prob = models.CharField(max_length=20, choices=DROP)
     dscp = models.ForeignKey(Dscp, on_delete=models.CASCADE, null=True)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
+    source = models.CharField(max_length=45)
+    destination = models.CharField(max_length=45)
+    begin_time = models.CharField(max_length=45)
+    end_time = models.CharField(max_length=45)
 
     def __str__(self):
         return self.name
@@ -162,6 +176,30 @@ class Application(models.Model):
     @property
     def dscp_value(self):
         return "AF{}{}".format(self.app_priority, self.drop_prob)
+
+    @property
+    def time_range(self):
+        if self.begin_time is not None:
+            if self.end_time is not None:
+                return "{}_time_range".format(self.name)
+        else:
+            return None
+
+    @property
+    def acl_list(self):
+        source = IPNetwork(self.source)
+        destination = IPNetwork(self.destination)
+        source_wild_card = source.hostmask.ipv4()
+        destination_wild_card = destination.hostmask.ipv4()
+        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        output = env.get_template("acl.j2")
+        config_file = output.render(source_wild_card=source_wild_card,
+                                    destination_wild_card=destination_wild_card,
+                                    source=source,
+                                    destination=destination,
+                                    a=self)
+
+        return config_file
 
 
 class Topology(models.Model):
