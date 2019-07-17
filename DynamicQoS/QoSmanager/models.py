@@ -33,7 +33,6 @@ class BusinessApp(models.Model):
 class Policy(models.Model):
     name = models.CharField(max_length=45)
     description = models.CharField(max_length=45)
-    topology_ref = models.ForeignKey(Topology, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.name
@@ -83,8 +82,11 @@ class PolicyOut(models.Model):
 
     @property
     def name(self):
-        interface = Interface.objects.filter(policy_out_ref=self)
-        return "OUT_{}_{}".format(self.policy_ref.name, interface.interface_name)
+        #interface = Interface.objects.get(policy_out_ref=self)
+        interfaces = Interface.objects.all()
+        for i in interfaces:
+            if i.policy_out_ref==self:
+                return "OUT_{}_{}".format(self.policy_ref.name,i.interface_name)
 
     @property
     def description(self):
@@ -100,6 +102,14 @@ class PolicyOut(models.Model):
         named = env.get_template("policyOut.j2")
         config_file = named.render(groups=groups, classes=classes, a=self, regroupement_classes=regroupement_classes,
                                    dscp_list=dscp_list)
+        return config_file
+
+    @property
+    def service_policy(self):
+        interface = Interface.objects.get(policy_out_ref=self)
+        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        output = env.get_template("service_policy.j2")
+        config_file = output.render(interface=interface)
         return config_file
 
 
@@ -235,6 +245,7 @@ class Device(models.Model):
     hostname = models.CharField(max_length=45)
     management = models.ForeignKey(Access, on_delete=models.CASCADE, null=True)
     topology_ref = models.ForeignKey(Topology, on_delete=models.CASCADE, null=True)
+    policy_ref = models.ForeignKey(Policy, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.hostname
@@ -253,6 +264,16 @@ class Device(models.Model):
         else:
             return False
 
+    def service_policy(self):
+        interfaces = Interface.objects.filter(device_ref=self)
+        policy_in = PolicyIn.objects.get(policy_ref=self.policy_ref)
+        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        output = env.get_template("service_policy.j2")
+        config_file = output.render(interfaces=interfaces, policy_in=policy_in)
+        return config_file
+
+
+
 
 class Interface(models.Model):
     interface_name = models.CharField(max_length=45)
@@ -265,15 +286,10 @@ class Interface(models.Model):
     def __str__(self):
         return self.interface_name
 
-    def service_policy(self):
-        a = self.policy_out_ref.policy_ref
 
-        policy_in = PolicyIn.objects.get(policy_ref=a)
-        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
-        output = env.get_template("service_policy.j2")
-        config_file = output.render(policy_in=policy_in,
-                                    policy_out=self.policy_out_ref,
-                                    a=self)
-        return config_file
+
+
+
+
 
 

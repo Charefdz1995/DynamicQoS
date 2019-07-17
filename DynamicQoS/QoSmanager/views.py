@@ -11,59 +11,65 @@ from .models import *
 # Create your views here.
 def index(request):
 
-    topo = Topology.objects.create(topology_name="test", topology_desc="test")
-    device = Device.objects.create(hostname="router1", topology_ref=topo)
-    int1 = Interface.objects.create(interface_name="g0/0", device_ref=device,ingress=True)
-    int2 = Interface.objects.create(interface_name="g1/0", device_ref=device, ingress=True)
-    int3 = Interface.objects.create(interface_name="g2/0", device_ref=device, ingress=False)
-    int4 = Interface.objects.create(interface_name="g3/0", device_ref=device, ingress=False)
-
-    # url = "http://192.168.0.128:8080/qosapi/topologies"
-    # r = requests.get(url)
+    # topo = Topology.objects.create(topology_name="test", topology_desc="test")
+    # device = Device.objects.create(hostname="router1", topology_ref=topo)
+    # int1 = Interface.objects.create(interface_name="g0/0", device_ref=device,ingress=True)
+    # int2 = Interface.objects.create(interface_name="g1/0", device_ref=device, ingress=True)
+    # int3 = Interface.objects.create(interface_name="g2/0", device_ref=device, ingress=False)
+    # int4 = Interface.objects.create(interface_name="g3/0", device_ref=device, ingress=False)
     #
-    # topo = (r.json())
-    # # print(type(topo))
-    # print(topo['topologies'])
-    # for topolo in topo['topologies']:
-    #     top = Topology.objects.create(topology_name=topolo['topology_name'], topology_desc=topolo['topology_desc'])
-    #     devices = topolo['devices']
-    #     for device in devices:
-    #         man = device['management']
-    #         mana = Access.objects.create(management_interface=man['management_interface'],
-    #                                      management_address=['management_address'],
-    #                                      username=['username'],
-    #                                      password=['password'])
-    #         dev = Device.objects.create(hostname=device['hostname'], topology_ref=top,management=mana)
-    #         interfaces = device['interfaces']
-    #         for interface in interfaces:
-    #             Interface.objects.create(device_ref=dev,
-    #                                      interface_name=interface['interface_name'],
-    #                                      ingress=interface['ingress'])
+    # # url = "http://192.168.0.128:8080/qosapi/topologies"
+    # # r = requests.get(url)
+    # #
+    # # topo = (r.json())
+    # # # print(type(topo))
+    # # print(topo['topologies'])
+    # # for topolo in topo['topologies']:
+    # #     top = Topology.objects.create(topology_name=topolo['topology_name'], topology_desc=topolo['topology_desc'])
+    # #     devices = topolo['devices']
+    # #     for device in devices:
+    # #         man = device['management']
+    # #         mana = Access.objects.create(management_interface=man['management_interface'],
+    # #                                      management_address=['management_address'],
+    # #                                      username=['username'],
+    # #                                      password=['password'])
+    # #         dev = Device.objects.create(hostname=device['hostname'], topology_ref=top,management=mana)
+    # #         interfaces = device['interfaces']
+    # #         for interface in interfaces:
+    # #             Interface.objects.create(device_ref=dev,
+    # #                                      interface_name=interface['interface_name'],
+    # #                                      ingress=interface['ingress'])
+    # #
+    # # interfaces=Interface.objects.all()
+    # # for i in interfaces:
+    # #     print(i.device_ref)
     #
-    # interfaces=Interface.objects.all()
-    # for i in interfaces:
-    #     print(i.device_ref)
-
-        #print(devices)
-    # for device in topo['topologies']:
-    #     Device.objects.create(hostname=device['hostname'])
-
-    # json_url = urlopen(url)
+    #     #print(devices)
+    # # for device in topo['topologies']:
+    # #     Device.objects.create(hostname=device['hostname'])
     #
-    # data = json.loads(json_url)
-    #
-    # print(data)
-    BusinessType.objects.create(name="Application")
-    BusinessType.objects.create(name="application-group")
-    BusinessType.objects.create(name="Category")
-    BusinessType.objects.create(name="sub-category")
-    BusinessType.objects.create(name="device-class")
-    BusinessType.objects.create(name="media-type")
-    with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
-        ap = json.load(jsonfile)
-        for app in ap['applications']:
-            bu = BusinessType.objects.get(name=app['business_type'])
-            BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
+    # # json_url = urlopen(url)
+    # #
+    # # data = json.loads(json_url)
+    # #
+    # # print(data)
+    # BusinessType.objects.create(name="Application")
+    # BusinessType.objects.create(name="application-group")
+    # BusinessType.objects.create(name="Category")
+    # BusinessType.objects.create(name="sub-category")
+    # BusinessType.objects.create(name="device-class")
+    # BusinessType.objects.create(name="media-type")
+    # with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
+    #     ap = json.load(jsonfile)
+    #     for app in ap['applications']:
+    #         bu = BusinessType.objects.get(name=app['business_type'])
+    #         BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
+    policies = PolicyOut.objects.all()
+    for p in policies:
+        print(p.name)
+    devices = Device.objects.all()
+    for device in devices:
+        print(device.service_policy())
 
     return HttpResponse('ssssss')
 
@@ -99,6 +105,10 @@ def add_policy(request):
     # policy_form = AddInputPolicyForm(request.POST)
     a = Policy(name=request.POST['name'], description=request.POST['description'])
     a.save()
+    devices = Device.objects.all()
+    for device in devices:
+        device.policy_ref = a
+        device.save()
     police_id = a.id
     PolicyIn.objects.create(policy_ref=a)
     interfaces = Interface.objects.filter(ingress=False)
