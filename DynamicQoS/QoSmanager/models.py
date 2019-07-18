@@ -131,6 +131,7 @@ class Group(models.Model):
 
 
 class RegroupementClass(models.Model):
+    name = models.CharField(max_length=45)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
     policing = models.ForeignKey(Policing, on_delete=models.CASCADE, null=True)
     shaping = models.ForeignKey(Shaping, on_delete=models.CASCADE, null=True)
