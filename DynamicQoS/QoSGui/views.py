@@ -19,7 +19,7 @@ from QoSmonitor.models import topology
 
 from DynamicQoS.settings import MEDIA_ROOT
 
-from QoSmonitor.utils import check_if_exists
+#from QoSmonitor.utils import check_if_exists
 
 
 @login_required(login_url='/login/')
