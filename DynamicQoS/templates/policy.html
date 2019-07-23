@@ -22,7 +22,13 @@
 
                                 <span class="pull-right">
                                      <a class="mr-3 d-inline-block pull-right" data-id="{{ policy.id }}" href="#" ><i class="fa fa-trash" data-toggle="modal" data-target="#kt_modal_3" ></i></a>
-                                    <a class="mr-3 d-inline-block pull-right" href="#" ><i class="fa fa-magic"></i></a>
+                                    {% if policy.enable  %}
+                                    <a class="mr-3 d-inline-block pull-right" href="{% url 'policy_off' policy.id %}" ><i class="fa fa-toggle-on"></i></a>
+                                    {% else %}
+                                    <a class="mr-3 d-inline-block pull-right" href="{% url 'policy_on' policy.id %}" ><i class="fa fa-toggle-off"></i></a>
+                                    {% endif %}
+
+
                                     <a class="mr-3 d-inline-block pull-right" href="#" ><i class="fa fa-stream"></i></a>
                                 </span>
                             </div>

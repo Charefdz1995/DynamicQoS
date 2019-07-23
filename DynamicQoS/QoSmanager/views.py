@@ -1,6 +1,7 @@
 import json
 
 import requests
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
@@ -53,17 +54,17 @@ def index(request):
     # # data = json.loads(json_url)
     # #
     # # print(data)
-    # BusinessType.objects.create(name="Application")
-    # BusinessType.objects.create(name="application-group")
-    # BusinessType.objects.create(name="Category")
-    # BusinessType.objects.create(name="sub-category")
-    # BusinessType.objects.create(name="device-class")
-    # BusinessType.objects.create(name="media-type")
-    # with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
-    #     ap = json.load(jsonfile)
-    #     for app in ap['applications']:
-    #         bu = BusinessType.objects.get(name=app['business_type'])
-    #         BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
+    BusinessType.objects.create(name="Application")
+    BusinessType.objects.create(name="application-group")
+    BusinessType.objects.create(name="Category")
+    BusinessType.objects.create(name="sub-category")
+    BusinessType.objects.create(name="device-class")
+    BusinessType.objects.create(name="media-type")
+    with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
+        ap = json.load(jsonfile)
+        for app in ap['applications']:
+            bu = BusinessType.objects.get(name=app['business_type'])
+            BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
 
     return render(request, 'home.html')
 
@@ -83,16 +84,17 @@ def add_application(request, police_id):
                 source=request.POST['source'],
                 destination=request.POST['destination'],
                 begin_time=request.POST['begin_time'],
-                end_time=request.POST['end_time'],).save()
+                end_time=request.POST['end_time'], ).save()
     return redirect('applications', police_id=police_id)
 
 
 def applications(request, police_id):
     app_form = AddApplicationForm(request.POST)
-    # apps =application.objects.all()
+    apps =Application.objects.all()
     # print(apps)
-    ctx = {'app_form': app_form, 'police_id': police_id}
-    return render(request, 'application.html', context=ctx)
+
+    ctx = {'app_form': app_form, 'police_id': police_id,'apps': apps}
+    return render(request, 'devices.html', context=ctx)
 
 
 def add_policy(request):
@@ -122,6 +124,17 @@ def add_policy(request):
                                          policy_out=po)
         RegroupementClass.objects.create(group=Group.objects.get(priority="1", policy=a),
                                          policy_out=po)
+    # BusinessType.objects.create(name="Application")
+    # BusinessType.objects.create(name="application-group")
+    # BusinessType.objects.create(name="Category")
+    # BusinessType.objects.create(name="sub-category")
+    # BusinessType.objects.create(name="device-class")
+    # BusinessType.objects.create(name="media-type")
+    # with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
+    #     ap = json.load(jsonfile)
+    #     for app in ap['applications']:
+    #         bu = BusinessType.objects.get(name=app['business_type'])
+    #         BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
 
     return redirect('policies')
 
@@ -132,10 +145,31 @@ def delete_policy(request, police_id):
     return redirect('policies')
 
 
+def policy_on(request, police_id):
+    obj = Policy.objects.get(id=police_id)
+    obj.enable = True
+    obj.save()
+    objs = Policy.objects.filter(~Q(id=police_id))
+    for k in objs:
+        k.enable=False
+        k.save()
+    return redirect('policies')
+
+
+def policy_off(request, police_id):
+    obj = Policy.objects.get(id =police_id)
+    obj.enable = False
+    obj.save()
+    return redirect('policies')
+
+
 def policies(request):
     policy_form = AddPolicyForm(request.POST)
     policies = Policy.objects.all()
-    ctx = {'policy_form': policy_form,'policies':policies}
+
+
+    ctx = {'policy_form': policy_form, 'policies': policies}
+
     return render(request, 'policy.html', context=ctx)
 
 

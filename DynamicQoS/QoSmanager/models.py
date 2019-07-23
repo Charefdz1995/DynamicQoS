@@ -31,8 +31,9 @@ class BusinessApp(models.Model):
 
 
 class Policy(models.Model):
-    name = models.CharField(max_length=45)
+    name = models.CharField(max_length=45,unique=True,error_messages={'unique': 'this name is in used'})
     description = models.CharField(max_length=45)
+    enable = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
