@@ -236,9 +236,9 @@ class FlowTableTwoRates(APIView):
 
             topo_name = request.query_params.get("topology")
             time_start = request.query_params.get("time_start")
-            time_start = datetime.datetime.strptime(time_start, "%Y-%m-%d %H:%M:%S")
+            time_start = datetime.strptime(time_start, "%Y-%m-%d %H:%M:%S")
             time_end = request.query_params.get("time_end")
-            time_end = datetime.datetime.strptime(time_end, "%Y-%m-%d %H:%M:%S")
+            time_end = datetime.strptime(time_end, "%Y-%m-%d %H:%M:%S")
             input_topo = topology.objects(topology_name=topo_name)[0]
             print(time_start)
             print(time_end)
