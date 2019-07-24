@@ -49,12 +49,15 @@
             <div class="card-header">
               <i class="fa fa-plus"></i> New policy</div>
             <div class="card-body">
-                <form method="POST" action="{% url 'add_policy' %}">
+                <form method="POST" action="{% url 'policies' %}">
                     {% csrf_token %}
                     <div class="form-group">
                     <div class="col-md-8">
                         <label for="exampleInputName">policy name:</label>
-                        {{ policy_form.name}}
+                        {{ policy_form.name }}
+                        {% if error %}
+                        <p style="color : red">{{ error }}</p>
+                        {% endif %}
                     </div>
                     </div>
                     <div class="form-group">

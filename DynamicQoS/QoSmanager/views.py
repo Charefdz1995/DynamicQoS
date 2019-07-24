@@ -98,32 +98,39 @@ def applications(request, police_id):
 
 
 def add_policy(request):
-    # policy_form = AddInputPolicyForm(request.POST)
-    a = Policy(name=request.POST['name'], description=request.POST['description'])
-    a.save()
-    devices = Device.objects.all()
-    for device in devices:
-        device.policy_ref = a
-        device.save()
-    police_id = a.id
-    PolicyIn.objects.create(policy_ref=a)
-    interfaces = Interface.objects.filter(ingress=False)
-    Group.objects.create(name="business", priority="4", policy=a)
-    Group.objects.create(name="critical", priority="3", policy=a)
-    Group.objects.create(name="non-business", priority="2", policy=a)
-    Group.objects.create(name="non-business2", priority="1", policy=a)
-    for interface in interfaces:
-        po = PolicyOut.objects.create(policy_ref=a)
-        interface.policy_out_ref = po
-        interface.save()
-        RegroupementClass.objects.create(group=Group.objects.get(priority="4", policy=a),
-                                         policy_out=po)
-        RegroupementClass.objects.create(group=Group.objects.get(priority="3", policy=a),
-                                         policy_out=po)
-        RegroupementClass.objects.create(group=Group.objects.get(priority="2", policy=a),
-                                         policy_out=po)
-        RegroupementClass.objects.create(group=Group.objects.get(priority="1", policy=a),
-                                         policy_out=po)
+    policy_form = AddPolicyForm(request.POST or None)
+    error = ''
+    if policy_form.is_valid():
+        a=policy_form.save()
+
+    #a = Policy(name=request.POST['name'], description=request.POST['description'])
+
+    #a.save()
+        devices = Device.objects.all()
+        for device in devices:
+            device.policy_ref = a
+            device.save()
+        police_id = a.id
+        PolicyIn.objects.create(policy_ref=a)
+        interfaces = Interface.objects.filter(ingress=False)
+        Group.objects.create(name="business", priority="4", policy=a)
+        Group.objects.create(name="critical", priority="3", policy=a)
+        Group.objects.create(name="non-business", priority="2", policy=a)
+        Group.objects.create(name="non-business2", priority="1", policy=a)
+        for interface in interfaces:
+            po = PolicyOut.objects.create(policy_ref=a)
+            interface.policy_out_ref = po
+            interface.save()
+            RegroupementClass.objects.create(group=Group.objects.get(priority="4", policy=a),
+                                             policy_out=po)
+            RegroupementClass.objects.create(group=Group.objects.get(priority="3", policy=a),
+                                             policy_out=po)
+            RegroupementClass.objects.create(group=Group.objects.get(priority="2", policy=a),
+                                             policy_out=po)
+            RegroupementClass.objects.create(group=Group.objects.get(priority="1", policy=a),
+                                             policy_out=po)
+        else:
+            error = 'field error'
     # BusinessType.objects.create(name="Application")
     # BusinessType.objects.create(name="application-group")
     # BusinessType.objects.create(name="Category")
@@ -164,13 +171,48 @@ def policy_off(request, police_id):
 
 
 def policies(request):
-    policy_form = AddPolicyForm(request.POST)
     policies = Policy.objects.all()
 
+    if request.method == 'POST':
+        policy_form = AddPolicyForm(request.POST)
+        error = ''
+        if policy_form.is_valid():
+            a=policy_form.save()
+            error=''
+            devices = Device.objects.all()
+            for device in devices:
+                device.policy_ref = a
+                device.save()
+            police_id = a.id
+            PolicyIn.objects.create(policy_ref=a)
+            interfaces = Interface.objects.filter(ingress=False)
+            Group.objects.create(name="business", priority="4", policy=a)
+            Group.objects.create(name="critical", priority="3", policy=a)
+            Group.objects.create(name="non-business", priority="2", policy=a)
+            Group.objects.create(name="non-business2", priority="1", policy=a)
+            for interface in interfaces:
+                po = PolicyOut.objects.create(policy_ref=a)
+                interface.policy_out_ref = po
+                interface.save()
+                RegroupementClass.objects.create(group=Group.objects.get(priority="4", policy=a),
+                                                 policy_out=po)
+                RegroupementClass.objects.create(group=Group.objects.get(priority="3", policy=a),
+                                                 policy_out=po)
+                RegroupementClass.objects.create(group=Group.objects.get(priority="2", policy=a),
+                                                 policy_out=po)
+                RegroupementClass.objects.create(group=Group.objects.get(priority="1", policy=a),
+                                                 policy_out=po)
 
-    ctx = {'policy_form': policy_form, 'policies': policies}
+            return redirect('policies')
+        else:
+            error = 'name error'
 
-    return render(request, 'policy.html', context=ctx)
+        return render(request, 'policy.html', locals())
+    else:
+        policy_form = AddPolicyForm(request.POST)
+        return render(request, 'policy.html', locals())
+
+
 
 
 def load_applications(request):
