@@ -160,14 +160,15 @@ def policy_on(request, police_id):
     for k in objs:
         k.enable=False
         k.save()
-    return redirect('policies')
+    #return redirect('policies')
+    return HttpResponse("test")
 
 
 def policy_off(request, police_id):
-    obj = Policy.objects.get(id =police_id)
+    obj = Policy.objects.get(id=police_id)
     obj.enable = False
     obj.save()
-    return redirect('policies')
+    return HttpResponse("off")
 
 
 def policies(request):
