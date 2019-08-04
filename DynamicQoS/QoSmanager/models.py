@@ -1,5 +1,5 @@
 import napalm
-from DynamicQoS.settings import NET_CONF_TEMPLATES
+from DynamicQoS.settings import MEDIA_ROOT
 from django.db import models
 # Create your models here.
 from jinja2 import Environment, FileSystemLoader
@@ -31,7 +31,7 @@ class BusinessApp(models.Model):
 
 
 class Policy(models.Model):
-    name = models.CharField(max_length=45,unique=True,error_messages={'unique': 'this name is in used'})
+    name = models.CharField(max_length=45, unique=True, error_messages={'unique': 'this name is in used'})
     description = models.CharField(max_length=45)
     enable = models.BooleanField(default=False)
 
@@ -83,11 +83,11 @@ class PolicyOut(models.Model):
 
     @property
     def name(self):
-        #interface = Interface.objects.get(policy_out_ref=self)
+        # interface = Interface.objects.get(policy_out_ref=self)
         interfaces = Interface.objects.all()
         for i in interfaces:
-            if i.policy_out_ref==self:
-                return "OUT_{}_{}".format(self.policy_ref.name,i.interface_name)
+            if i.policy_out_ref == self:
+                return "OUT_{}_{}".format(self.policy_ref.name, i.interface_name)
 
     @property
     def description(self):
@@ -169,6 +169,13 @@ class Application(models.Model):
         (High, "3"),
         (Priority, "4")
     )
+    IP, TCP, UDP, TCP_UDP = "ip", "tcp", "udp", "tcp/udp"
+    PROTOCOL = (
+        (IP, "ip"),
+        (TCP, "tcp"),
+        (UDP, "udp"),
+        (TCP_UDP, "tcp/udp")
+    )
 
     business_type = models.ForeignKey(BusinessType, on_delete=models.CASCADE, null=True)
     business_app = models.ForeignKey(BusinessApp, on_delete=models.CASCADE, null=True)
@@ -181,17 +188,24 @@ class Application(models.Model):
     destination = models.CharField(max_length=45)
     begin_time = models.CharField(max_length=45)
     end_time = models.CharField(max_length=45)
+    protocol_type = models.CharField(max_length=45, choices=PROTOCOL, default=IP)
+    port_number = models.CharField(max_length=45)
+    custom_name = models.CharField(max_length=45)
 
     def __str__(self):
         return self.name
 
     @property
     def name(self):
-        return "{}".format(self.business_app.name)
+        if self.business_app is not None:
+            return "{}".format(self.business_app.name)
+        if self.custom_name is not None:
+            return self.custom_name
 
     @property
     def match(self):
-        return "{}".format(self.business_app.match)
+        if self.business_app is not None:
+            return "{}".format(self.business_app.match)
 
     @property
     def dscp_value(self):
@@ -211,7 +225,7 @@ class Application(models.Model):
 
     @property
     def render_time_range(self):
-        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        env = Environment(loader=FileSystemLoader(str(MEDIA_ROOT[0]) + "/monitoring_conf/"))
         output = env.get_template("time.j2")
         config_file = output.render(a=self)
 
@@ -223,7 +237,7 @@ class Application(models.Model):
         destination = IPNetwork(self.destination)
         source_wild_card = source.hostmask.ipv4()
         destination_wild_card = destination.hostmask.ipv4()
-        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        env = Environment(loader=FileSystemLoader(str(MEDIA_ROOT[0]) + "/monitoring_conf/"))
         output = env.get_template("acl.j2")
         config_file = output.render(source_wild_card=source_wild_card,
                                     destination_wild_card=destination_wild_card,
@@ -268,12 +282,10 @@ class Device(models.Model):
     def service_policy(self):
         interfaces = Interface.objects.filter(device_ref=self)
         policy_in = PolicyIn.objects.get(policy_ref=self.policy_ref)
-        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        env = Environment(loader=FileSystemLoader(str(MEDIA_ROOT[0]) + "/monitoring_conf/"))
         output = env.get_template("service_policy.j2")
         config_file = output.render(interfaces=interfaces, policy_in=policy_in)
         return config_file
-
-
 
 
 class Interface(models.Model):
@@ -286,11 +298,3 @@ class Interface(models.Model):
 
     def __str__(self):
         return self.interface_name
-
-
-
-
-
-
-
-

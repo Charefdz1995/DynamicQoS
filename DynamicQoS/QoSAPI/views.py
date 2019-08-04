@@ -16,7 +16,7 @@ from napalm import get_network_driver
 from rest_framework import status
 from rest_framework.response import Response
 from .utils import *
-from QoSmonitor.tasks import * 
+# from QoSmonitor.tasks import *
 from rest_framework import serializers as sr
 
 
@@ -37,7 +37,7 @@ class AddTopology(generics.CreateAPIView):
 class AddDevice(generics.CreateAPIView):
 
 	serializer_class = deviceSerializer
-	
+
 	def perform_create(self, serializer):
 		addr = self.request.data.get("management.management_address")
 		user = self.request.data.get("management.username")
@@ -60,9 +60,9 @@ class AddDevice(generics.CreateAPIView):
 			for device_cursor in device_list:
 				other_list.append(device.objects.get(id = device_cursor.id))
 			topology_qs[0].update(set__devices = other_list)
-  
 
-            
+
+
 class TopologyByName(APIView):
 
     def get(self, request):
@@ -106,7 +106,7 @@ class preapare_environment(generics.CreateAPIView):
 			raise sr.ValidationError("ERROR : {}".format(e))
 		return Response("the environment is preapared successfully")
 
-              
+
 class discover_network(generics.CreateAPIView):
 	serializer_class =  discover_networkSerializer
 	queryset = "Nothing to do here it is out of models"
@@ -150,7 +150,7 @@ class configure_monitoring(generics.CreateAPIView):
 		try:
 			topology_exist = topology.objects.get(topology_name = topology_name)
 		except:
-			raise sr.ValidationError("Topology '{}' doesn't exist".format(topology_name)) 
+			raise sr.ValidationError("Topology '{}' doesn't exist".format(topology_name))
 		if topology_exist.monitoring_enabled == True:
 			raise sr.ValidationError("Topology '{}' is already configured".format(topology_name))
 
@@ -160,7 +160,7 @@ class configure_monitoring(generics.CreateAPIView):
 				monitor.configure_netflow(destination = collector)
 			except Exception as e:
 				raise sr.ValidationError("ERROR : {}".format(e))"""
-				
+
 		for monitor in topology_exist.devices:
 			try:
 				monitor.configure_netflow(destination = collector)

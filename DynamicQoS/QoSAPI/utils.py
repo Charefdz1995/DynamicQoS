@@ -255,4 +255,4 @@ def get_flow_statistics(topo_name, flow_id, point):
         result["labels"] = {labels}
         result["bandwidth"] = {bandwidths}
 
-     return json.dumps(result, indent=4)
+    return json.dumps(result, indent=4)

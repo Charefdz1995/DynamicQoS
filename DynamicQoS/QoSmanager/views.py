@@ -54,19 +54,25 @@ def index(request):
     # # data = json.loads(json_url)
     # #
     # # print(data)
-    BusinessType.objects.create(name="Application")
-    BusinessType.objects.create(name="application-group")
-    BusinessType.objects.create(name="Category")
-    BusinessType.objects.create(name="sub-category")
-    BusinessType.objects.create(name="device-class")
-    BusinessType.objects.create(name="media-type")
-    with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
-        ap = json.load(jsonfile)
-        for app in ap['applications']:
-            bu = BusinessType.objects.get(name=app['business_type'])
-            BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
+    # BusinessType.objects.create(name="Application")
+    # BusinessType.objects.create(name="application-group")
+    # BusinessType.objects.create(name="Category")
+    # BusinessType.objects.create(name="sub-category")
+    # BusinessType.objects.create(name="device-class")
+    # BusinessType.objects.create(name="media-type")
+    # with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
+    #     ap = json.load(jsonfile)
+    #     for app in ap['applications']:
+    #         bu = BusinessType.objects.get(name=app['business_type'])
+    #         BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
+    cust=Application.objects.create(custom_name="djoudi",port_number="15",source="192.168.12.15/24",destination="192.168.12.15/24",protocol_type="tcp")
+    apps = Application.objects.all()
+    print(apps)
+    for ap in apps:
+        print (ap.acl_list)
 
-    return render(request, 'home.html')
+    # return render(request, 'home.html')
+    return HttpResponse("hello")
 
 
 def add_application(request, police_id):
@@ -90,10 +96,11 @@ def add_application(request, police_id):
 
 def applications(request, police_id):
     app_form = AddApplicationForm(request.POST)
-    apps =Application.objects.all()
+    custom_form = AddCustomApplicationForm(request.POST)
+    apps = Application.objects.all()
     # print(apps)
 
-    ctx = {'app_form': app_form, 'police_id': police_id,'apps': apps}
+    ctx = {'app_form': app_form, 'police_id': police_id, 'apps': apps, 'custom_form': custom_form}
     return render(request, 'devices.html', context=ctx)
 
 
@@ -101,11 +108,11 @@ def add_policy(request):
     policy_form = AddPolicyForm(request.POST or None)
     error = ''
     if policy_form.is_valid():
-        a=policy_form.save()
+        a = policy_form.save()
 
-    #a = Policy(name=request.POST['name'], description=request.POST['description'])
+        # a = Policy(name=request.POST['name'], description=request.POST['description'])
 
-    #a.save()
+        # a.save()
         devices = Device.objects.all()
         for device in devices:
             device.policy_ref = a
@@ -158,9 +165,9 @@ def policy_on(request, police_id):
     obj.save()
     objs = Policy.objects.filter(~Q(id=police_id))
     for k in objs:
-        k.enable=False
+        k.enable = False
         k.save()
-    #return redirect('policies')
+    # return redirect('policies')
     return HttpResponse("test")
 
 
@@ -178,8 +185,8 @@ def policies(request):
         policy_form = AddPolicyForm(request.POST)
         error = ''
         if policy_form.is_valid():
-            a=policy_form.save()
-            error=''
+            a = policy_form.save()
+            error = ''
             devices = Device.objects.all()
             for device in devices:
                 device.policy_ref = a
@@ -212,8 +219,6 @@ def policies(request):
     else:
         policy_form = AddPolicyForm(request.POST)
         return render(request, 'policy.html', locals())
-
-
 
 
 def load_applications(request):
