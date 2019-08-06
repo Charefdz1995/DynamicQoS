@@ -54,17 +54,17 @@ def index(request):
     # # data = json.loads(json_url)
     # #
     # # print(data)
-    # BusinessType.objects.create(name="Application")
-    # BusinessType.objects.create(name="application-group")
-    # BusinessType.objects.create(name="Category")
-    # BusinessType.objects.create(name="sub-category")
-    # BusinessType.objects.create(name="device-class")
-    # BusinessType.objects.create(name="media-type")
-    # with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
-    #     ap = json.load(jsonfile)
-    #     for app in ap['applications']:
-    #         bu = BusinessType.objects.get(name=app['business_type'])
-    #         BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
+    BusinessType.objects.create(name="Application")
+    BusinessType.objects.create(name="application-group")
+    BusinessType.objects.create(name="Category")
+    BusinessType.objects.create(name="sub-category")
+    BusinessType.objects.create(name="device-class")
+    BusinessType.objects.create(name="media-type")
+    with open("/home/djoudi/PycharmProjects/DynamicQoS/DynamicQoS/QoSmanager/nbar_application.json", 'r') as jsonfile:
+        ap = json.load(jsonfile)
+        for app in ap['applications']:
+            bu = BusinessType.objects.get(name=app['business_type'])
+            BusinessApp(name=app['name'], match=app['match'], business_type=bu).save()
 
     apps = Application.objects.all()
     print(apps)
