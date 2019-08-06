@@ -18,6 +18,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),
     # path('', include('QoSGui.urls')),
     # path('api/v1/', include('QoSAPI.urls','APIv1')),
     path('', include('QoSmanager.urls')),

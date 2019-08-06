@@ -55,7 +55,7 @@ class PolicyIn(models.Model):
 
     @property
     def render_policy(self):
-        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        env = Environment(loader=FileSystemLoader(str(MEDIA_ROOT[0]) + "/monitoring_conf/"))
         classes = Application.objects.filter(policy_in_id=self.id)
         named = env.get_template("policyIn.j2")
         config_file = named.render(classes=classes, a=self)
@@ -95,7 +95,7 @@ class PolicyOut(models.Model):
 
     @property
     def render_policy(self):
-        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        env = Environment(loader=FileSystemLoader(str(MEDIA_ROOT[0]) + "/monitoring_conf/"))
         groups = Group.objects.filter(policy=self.policy_ref)
         regroupement_classes = RegroupementClass.objects.filter(policy_out_id=self.id)
         dscp_list = Dscp.objects.all()
@@ -108,7 +108,7 @@ class PolicyOut(models.Model):
     @property
     def service_policy(self):
         interface = Interface.objects.get(policy_out_ref=self)
-        env = Environment(loader=FileSystemLoader(NET_CONF_TEMPLATES))
+        env = Environment(loader=FileSystemLoader(str(MEDIA_ROOT[0]) + "/monitoring_conf/"))
         output = env.get_template("service_policy.j2")
         config_file = output.render(interface=interface)
         return config_file
@@ -206,6 +206,8 @@ class Application(models.Model):
     def match(self):
         if self.business_app is not None:
             return "{}".format(self.business_app.match)
+        else:
+            return None
 
     @property
     def dscp_value(self):
